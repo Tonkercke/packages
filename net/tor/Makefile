@@ -8,8 +8,10 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=tor
+PKG_VERSION:=master
+PKG_RELEASE:=1
 
-PKG_SOURCE:=master.zip
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).zip
 PKG_SOURCE_URL:=https://github.com/Tonkercke/tor/archive/refs/heads/master.zip
 PKG_HASH:=2aca6b34d8e87265b8f533d5a6552fe9c4ddfce85002e6673971278f96433163
 PKG_MAINTAINER:=Hauke Mehrtens <hauke@hauke-m.de> \
