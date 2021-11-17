@@ -1,4 +1,0 @@
---- a/src/config/torrc.sample.in
-+++ b/src/config/torrc.sample.in
-@@ -39,7 +39,7 @@
-+User tor
