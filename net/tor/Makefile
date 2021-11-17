@@ -13,7 +13,7 @@ PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_VERSION).zip
 PKG_SOURCE_URL:=https://github.com/Tonkercke/tor/archive/refs/heads/
-PKG_HASH:=2aca6b34d8e87265b8f533d5a6552fe9c4ddfce85002e6673971278f96433163
+PKG_HASH:=7d89de32ce73fd912bc88574dcd776e93f251e6d497dfe9ffa7ca2528466bd70
 PKG_MAINTAINER:=Hauke Mehrtens <hauke@hauke-m.de> \
 		Peter Wagner <tripolar@gmx.at>
 PKG_LICENSE_FILES:=LICENSE
