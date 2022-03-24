@@ -48,7 +48,8 @@ endef
 define Package/crowdsec-firewall-bouncer
 $(call Package/crowdsec-firewall-bouncer/Default)
   DEPENDS:=@(PACKAGE_iptables||PACKAGE_nftables) \
-	$(GO_ARCH_DEPENDS)
+	$(GO_ARCH_DEPENDS) \
+	+crowdsec
 endef
 
 define Package/golang-crowdsec-firewall-bouncer-dev
