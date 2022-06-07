@@ -7,18 +7,20 @@
 
 include $(TOPDIR)/rules.mk
 
-GO_VERSION_MAJOR_MINOR:=1.18
-GO_VERSION_PATCH:=1
+GO_VERSION_MAJOR_MINOR:=1.17
+GO_VERSION_PATCH:=11
 
 PKG_NAME:=golang
 PKG_VERSION:=$(GO_VERSION_MAJOR_MINOR)$(if $(GO_VERSION_PATCH),.$(GO_VERSION_PATCH))
 PKG_RELEASE:=1
 
-GO_SOURCE_URLS:=https://go.dev/dl/ 
+GO_SOURCE_URLS:=https://dl.google.com/go/ \
+                https://mirrors.ustc.edu.cn/golang/ \
+                https://mirrors.nju.edu.cn/golang/
 
 PKG_SOURCE:=go$(PKG_VERSION).src.tar.gz
 PKG_SOURCE_URL:=$(GO_SOURCE_URLS)
-PKG_HASH:=efd43e0f1402e083b73a03d444b7b6576bb4c539ac46208b63a916b69aca4088
+PKG_HASH:=ac2649a65944c6a5abe55054000eee3d77196880da36a3555f62e06540e8eb54
 
 PKG_MAINTAINER:=Jeffery To <jeffery.to@gmail.com>
 PKG_LICENSE:=BSD-3-Clause
@@ -260,11 +262,10 @@ $(eval $(call GoCompiler/AddProfile,Package,$(PKG_BUILD_DIR),$(PKG_GO_PREFIX),$(
 
 PKG_GO_ZBOOTSTRAP_MODS:= \
 	s/defaultGO386 = `[^`]*`/defaultGO386 = `$(or $(GO_386),sse2)`/; \
-	s/defaultGOAMD64 = `[^`]*`/defaultGOAMD64 = `$(or $(GO_AMD64),v1)`/; \
 	s/defaultGOARM = `[^`]*`/defaultGOARM = `$(or $(GO_ARM),5)`/; \
 	s/defaultGOMIPS = `[^`]*`/defaultGOMIPS = `$(or $(GO_MIPS),hardfloat)`/; \
 	s/defaultGOMIPS64 = `[^`]*`/defaultGOMIPS64 = `$(or $(GO_MIPS64),hardfloat)`/; \
-	s/defaultGOPPC64 = `[^`]*`/defaultGOPPC64 = `$(or $(GO_PPC64),power8)`/;
+	s/defaultGOPPC64 = `[^`]*`/defaultGOPPC64 = `power8`/;
 
 PKG_GO_ZBOOTSTRAP_PATH:=$(PKG_BUILD_DIR)/src/internal/buildcfg/zbootstrap.go
 
