@@ -7,20 +7,18 @@
 
 include $(TOPDIR)/rules.mk
 
-GO_VERSION_MAJOR_MINOR:=1.17
-GO_VERSION_PATCH:=11
+GO_VERSION_MAJOR_MINOR:=1.18
+GO_VERSION_PATCH:=3
 
 PKG_NAME:=golang
 PKG_VERSION:=$(GO_VERSION_MAJOR_MINOR)$(if $(GO_VERSION_PATCH),.$(GO_VERSION_PATCH))
 PKG_RELEASE:=1
 
-GO_SOURCE_URLS:=https://dl.google.com/go/ \
-                https://mirrors.ustc.edu.cn/golang/ \
-                https://mirrors.nju.edu.cn/golang/
+GO_SOURCE_URLS:=https://go.dev/dl/
 
 PKG_SOURCE:=go$(PKG_VERSION).src.tar.gz
 PKG_SOURCE_URL:=$(GO_SOURCE_URLS)
-PKG_HASH:=ac2649a65944c6a5abe55054000eee3d77196880da36a3555f62e06540e8eb54
+PKG_HASH:=0012386ddcbb5f3350e407c679923811dbd283fcdc421724931614a842ecbc2d
 
 PKG_MAINTAINER:=Jeffery To <jeffery.to@gmail.com>
 PKG_LICENSE:=BSD-3-Clause
