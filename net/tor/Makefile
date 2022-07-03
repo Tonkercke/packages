@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=tor
-PKG_VERSION:=1.04
+PKG_VERSION:=1.05
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/Tonkercke/tor/archive/refs/tags/
-PKG_HASH:=97346bac1b4d0c2f9e03c56db61c9ed4017b1f9f475a2006eb4c8f8c63d5f57e
+PKG_HASH:=28460e16cecc22b597e4e8b0b801af588a64c95a32a0094c386caf497440cedb
 PKG_MAINTAINER:=Hauke Mehrtens <hauke@hauke-m.de> \
 		Peter Wagner <tripolar@gmx.at>
 PKG_LICENSE_FILES:=LICENSE
