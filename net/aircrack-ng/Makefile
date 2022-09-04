@@ -34,7 +34,6 @@ PKG_CONFIG_DEPENDS:= \
 	CONFIG_AIRCRACK_NG_HWLOC \
 	CONFIG_AIRCRACK_NG_SQLITE3
 
-include $(INCLUDE_DIR)/uclibc++.mk
 include $(INCLUDE_DIR)/package.mk
 
 define Package/aircrack-ng
