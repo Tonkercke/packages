@@ -78,6 +78,12 @@ CONFIGURE_ARGS += --disable-jit-support
 # Host JIT does work but it is not worth it
 HOST_CONFIGURE_ARGS += --disable-jit-support
 
+# Apple ld generates warning if LD_FLAGS var includes path to lib that is not 
+# exist (e.g. -L$(STAGING_DIR)/host/lib). configure script fails if ld generates 
+# any output
+HOST_LDFLAGS += \
+	$(if $(CONFIG_HOST_OS_MACOS),-Wl$(comma)-w)
+
 TARGET_LDFLAGS += -L$(PKG_BUILD_DIR)
 
 # Ruby uses DLDFLAGS and not LDFLAGS for libraries. LDFLAGS is only for execs.
@@ -221,7 +227,7 @@ endef
 
 # nothing to do
 define Package/ruby-stdlib/install
-	/bin/true
+	true
 endef
 
 define Package/ruby-abbrev/files

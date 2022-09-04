@@ -9,7 +9,7 @@
  
    local wr_options="--disable-log-error  --pid-file='$wr_pidfile'"
  
-@@ -666,7 +666,7 @@ then
+@@ -667,7 +667,7 @@ then
          * ) err_log="$DATADIR/$err_log" ;;
        esac
      else
@@ -18,7 +18,7 @@
      fi
    fi
  
-@@ -745,7 +745,7 @@ fi
+@@ -746,7 +746,7 @@ fi
  
  if test -z "$pid_file"
  then

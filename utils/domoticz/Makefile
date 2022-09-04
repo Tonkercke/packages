@@ -20,10 +20,7 @@ PKG_LICENSE:=GPL-3.0
 PKG_LICENSE_FILES:=License.txt
 
 PKG_BUILD_DEPENDS:=python3 minizip cereal
-PKG_BUILD_PARALLEL:=1
 PKG_USE_MIPS16:=0
-
-CMAKE_INSTALL:=1
 
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/cmake.mk
@@ -78,7 +75,6 @@ CMAKE_OPTIONS += \
 
 TARGET_CFLAGS += -flto
 TARGET_CXXFLAGS += -DWITH_GPIO -flto
-TARGET_LDFLAGS += -lpython3.9
 
 define Build/Prepare
 	$(call Build/Prepare/Default)
