@@ -14,6 +14,7 @@ ban_basedir="/tmp"
 ban_backupdir="/tmp/banIP-backup"
 ban_reportdir="/tmp/banIP-report"
 ban_feedfile="/etc/banip/banip.feeds"
+ban_customfeedfile="/etc/banip/banip.custom.feeds"
 ban_allowlist="/etc/banip/banip.allowlist"
 ban_blocklist="/etc/banip/banip.blocklist"
 ban_mailtemplate="/etc/banip/banip.tpl"
@@ -55,6 +56,7 @@ ban_deduplicate="1"
 ban_splitsize="0"
 ban_autodetect="1"
 ban_feed=""
+ban_blockpolicy=""
 ban_blockinput=""
 ban_blockforwardwan=""
 ban_blockforwardlan=""
@@ -78,6 +80,10 @@ ban_debug="0"
 f_system() {
 	local cpu core
 
+	if [ -z "${ban_dev}" ]; then
+		ban_debug="$(uci_get banip global ban_debug)"
+		ban_cores="$(uci_get banip global ban_cores)"
+	fi
 	ban_memory="$("${ban_awkcmd}" '/^MemAvailable/{printf "%s",int($2/1000)}' "/proc/meminfo" 2>/dev/null)"
 	ban_ver="$(${ban_ubuscmd} -S call rpc-sys packagelist '{ "all": true }' 2>/dev/null | jsonfilter -ql1 -e '@.packages.banip')"
 	ban_sysver="$(${ban_ubuscmd} -S call system board 2>/dev/null | jsonfilter -ql1 -e '@.model' -e '@.release.description' |
@@ -89,8 +95,6 @@ f_system() {
 		[ "${core}" = "0" ] && core="1"
 		ban_cores="$((cpu * core))"
 	fi
-
-	f_log "debug" "f_system  ::: system: ${ban_sysver:-"n/a"}, version: ${ban_ver:-"n/a"}, memory: ${ban_memory:-"0"}, cpu_cores: ${ban_cores}"
 }
 
 # create directories
@@ -142,7 +146,13 @@ f_rmdir() {
 f_char() {
 	local char="${1}"
 
-	[ "${char}" = "1" ] && printf "%s" "✔" || printf "%s" "✘"
+	if [ "${char}" = "1" ]; then
+		printf "%s" "✔"
+	elif [ "${char}" = "0" ] || [ -z "${char}" ]; then
+		printf "%s" "✘"
+	else
+		printf "%s" "${char}"
+	fi
 }
 
 # trim strings
@@ -421,12 +431,28 @@ f_getsub() {
 	f_log "debug" "f_getsub  ::: auto/update: ${ban_autoallowlist}/${update}, subnet(s): ${ban_sub:-"-"}"
 }
 
+# get feed information
+#
+f_getfeed() {
+	json_init
+	if [ -s "${ban_customfeedfile}" ]; then
+		if ! json_load_file "${ban_customfeedfile}" >/dev/null 2>&1; then
+			f_log "info" "banIP custom feed file can't be loaded"
+			if ! json_load_file "${ban_feedfile}" >/dev/null 2>&1; then
+				f_log "err" "banIP feed file can't be loaded"
+			fi
+		fi
+	elif ! json_load_file "${ban_feedfile}" >/dev/null 2>&1; then
+		f_log "err" "banIP feed file can't be loaded"
+	fi
+}
+
 # get set elements
 #
 f_getelements() {
 	local file="${1}"
 
-	[ -s "${file}" ] && printf "%s" "elements={ $(cat "${file}") };"
+	[ -s "${file}" ] && printf "%s" "elements={ $(cat "${file}" 2>/dev/null) };"
 }
 
 # build initial nft file with base table, chains and rules
@@ -496,8 +522,27 @@ f_down() {
 	[ "${ban_logforwardwan}" = "1" ] && log_forwardwan="log level ${ban_nftloglevel} prefix \"banIP/fwd-wan/drp/${feed}: \""
 	[ "${ban_logforwardlan}" = "1" ] && log_forwardlan="log level ${ban_nftloglevel} prefix \"banIP/fwd-lan/rej/${feed}: \""
 
-	# set source block direction
+	# set feed block direction
 	#
+	if [ "${ban_blockpolicy}" = "input" ]; then
+		if ! printf "%s" "${ban_blockinput}" | "${ban_grepcmd}" -q "${feed%v*}" &&
+			! printf "%s" "${ban_blockforwardwan}" | "${ban_grepcmd}" -q "${feed%v*}" &&
+			! printf "%s" "${ban_blockforwardlan}" | "${ban_grepcmd}" -q "${feed%v*}"; then
+			ban_blockinput="${ban_blockinput} ${feed%v*}"
+		fi
+	elif [ "${ban_blockpolicy}" = "forwardwan" ]; then
+		if ! printf "%s" "${ban_blockinput}" | "${ban_grepcmd}" -q "${feed%v*}" &&
+			! printf "%s" "${ban_blockforwardwan}" | "${ban_grepcmd}" -q "${feed%v*}" &&
+			! printf "%s" "${ban_blockforwardlan}" | "${ban_grepcmd}" -q "${feed%v*}"; then
+			ban_blockforwardwan="${ban_blockforwardwan} ${feed%v*}"
+		fi
+	elif [ "${ban_blockpolicy}" = "forwardlan" ]; then
+		if ! printf "%s" "${ban_blockinput}" | "${ban_grepcmd}" -q "${feed%v*}" &&
+			! printf "%s" "${ban_blockforwardwan}" | "${ban_grepcmd}" -q "${feed%v*}" &&
+			! printf "%s" "${ban_blockforwardlan}" | "${ban_grepcmd}" -q "${feed%v*}"; then
+			ban_blockforwardlan="${ban_blockforwardlan} ${feed%v*}"
+		fi
+	fi
 	if printf "%s" "${ban_blockinput}" | "${ban_grepcmd}" -q "${feed%v*}"; then
 		feed_direction="input"
 	fi
@@ -592,7 +637,7 @@ f_down() {
 				fi
 			fi
 		} >"${tmp_nft}"
-		feed_rc="${?}"
+		feed_rc="0"
 	elif [ "${feed%v*}" = "blocklist" ]; then
 		{
 			printf "%s\n\n" "#!/usr/sbin/nft -f"
@@ -633,7 +678,7 @@ f_down() {
 				[ -z "${feed_direction##*forwardlan*}" ] && printf "%s\n" "add rule inet banIP lan-forward ip6 daddr @${feed} ${log_forwardlan} counter reject with icmpv6 type admin-prohibited"
 			fi
 		} >"${tmp_nft}"
-		feed_rc="${?}"
+		feed_rc="0"
 	# handle external downloads
 	#
 	elif [ "${restore_rc}" != "0" ] && [ "${feed_url}" != "local" ]; then
@@ -708,7 +753,7 @@ f_down() {
 			if [ -n "${ban_splitsize//[![:digit]]/}" ] && [ "${ban_splitsize//[![:digit]]/}" -gt "0" ]; then
 				if ! "${ban_awkcmd}" "NR%${ban_splitsize//[![:digit]]/}==1{file=\"${tmp_file}.\"++i;}{ORS=\" \";print > file}" "${tmp_split}" 2>/dev/null; then
 					rm -f "${tmp_file}".*
-					f_log "info" "failed to split ${feed} set to size '${ban_splitsize//[![:digit]]/}'"
+					f_log "info" "failed to split '${feed}' Set to size '${ban_splitsize//[![:digit]]/}'"
 				fi
 			else
 				"${ban_awkcmd}" '{ORS=" ";print}' "${tmp_split}" 2>/dev/null >"${tmp_file}.1"
@@ -764,7 +809,7 @@ f_down() {
 						continue
 					fi
 					if ! "${ban_nftcmd}" add element inet banIP "${feed}" "{ $(cat "${split_file}") }" >/dev/null 2>&1; then
-						f_log "info" "failed to add split file '${split_file##*.}' to ${feed} set"
+						f_log "info" "failed to add split file '${split_file##*.}' to '${feed}' Set"
 					fi
 					rm -f "${split_file}"
 				done
@@ -773,7 +818,7 @@ f_down() {
 				fi
 			fi
 		else
-			f_log "info" "empty feed ${feed} will be skipped"
+			f_log "info" "empty feed '${feed}' will be skipped"
 		fi
 	fi
 	rm -f "${tmp_split}" "${tmp_nft}"
@@ -813,15 +858,18 @@ f_restore() {
 # remove disabled feeds
 #
 f_rmset() {
-	local tmp_del ruleset_raw table_sets handle set del_set feed_log feed_rc
+	local feedlist tmp_del ruleset_raw table_sets handle set del_set feed_log feed_rc
 
+	f_getfeed
+	json_get_keys feedlist
 	tmp_del="${ban_tmpfile}.final.delete"
 	ruleset_raw="$("${ban_nftcmd}" -tj list ruleset 2>/dev/null)"
 	table_sets="$(printf "%s\n" "${ruleset_raw}" | jsonfilter -qe '@.nftables[@.set.table="banIP"].set.name')"
 	{
 		printf "%s\n\n" "#!/usr/sbin/nft -f"
 		for set in ${table_sets}; do
-			if ! printf "%s" "allowlist blocklist ${ban_feed}" | "${ban_grepcmd}" -q "${set%v*}"; then
+			if ! printf "%s" "allowlist blocklist ${ban_feed}" | "${ban_grepcmd}" -q "${set%v*}" ||
+				! printf "%s" "allowlist blocklist ${feedlist}" | "${ban_grepcmd}" -q "${set%v*}"; then
 				del_set="${del_set}${set}, "
 				rm -f "${ban_backupdir}/banIP.${set}.gz"
 				printf "%s\n" "flush set inet banIP ${set}"
@@ -849,7 +897,7 @@ f_rmset() {
 # generate status information
 #
 f_genstatus() {
-	local object duration set table_sets cnt_elements="0" split="0" status="${1}"
+	local object duration set table_sets cnt_elements="0" custom="0" split="0" status="${1}"
 
 	[ -z "${ban_dev}" ] && f_conf
 	if [ "${status}" = "active" ]; then
@@ -865,6 +913,7 @@ f_genstatus() {
 		fi
 		runtime="action: ${ban_action:-"-"}, duration: ${duration:-"-"}, date: $(date "+%Y-%m-%d %H:%M:%S")"
 	fi
+	[ -s ${ban_customfeedfile} ] && custom="1"
 	[ ${ban_splitsize:-"0"} -gt "0" ] && split="1"
 
 	: >"${ban_rtfile}"
@@ -874,51 +923,33 @@ f_genstatus() {
 	json_add_string "version" "${ban_ver}"
 	json_add_string "element_count" "${cnt_elements}"
 	json_add_array "active_feeds"
-	if [ "${status}" != "active" ]; then
+	for object in ${table_sets:-"-"}; do
 		json_add_object
-		json_add_string "feed" "-"
+		json_add_string "feed" "${object}"
 		json_close_object
-	else
-		for object in ${table_sets}; do
-			json_add_object
-			json_add_string "feed" "${object}"
-			json_close_object
-		done
-	fi
+	done
 	json_close_array
 	json_add_array "active_devices"
-	if [ "${status}" != "active" ]; then
+	for object in ${ban_dev:-"-"}; do
 		json_add_object
-		json_add_string "device" "-"
+		json_add_string "device" "${object}"
 		json_close_object
-	else
-		for object in ${ban_dev}; do
-			json_add_object
-			json_add_string "device" "${object}"
-			json_close_object
-		done
-		for object in ${ban_ifv4} ${ban_ifv6}; do
-			json_add_object
-			json_add_string "interface" "${object}"
-			json_close_object
-		done
-	fi
+	done
+	for object in ${ban_ifv4:-"-"} ${ban_ifv6:-"-"}; do
+		json_add_object
+		json_add_string "interface" "${object}"
+		json_close_object
+	done
 	json_close_array
 	json_add_array "active_subnets"
-	if [ "${status}" != "active" ]; then
+	for object in ${ban_sub:-"-"}; do
 		json_add_object
-		json_add_string "subnet" "-"
+		json_add_string "subnet" "${object}"
 		json_close_object
-	else
-		for object in ${ban_sub}; do
-			json_add_object
-			json_add_string "subnet" "${object}"
-			json_close_object
-		done
-	fi
+	done
 	json_close_array
 	json_add_string "nft_info" "priority: ${ban_nftpriority}, policy: ${ban_nftpolicy}, loglevel: ${ban_nftloglevel}, expiry: ${ban_nftexpiry:-"-"}"
-	json_add_string "run_info" "base: ${ban_basedir}, backup: ${ban_backupdir}, report: ${ban_reportdir}, feed: ${ban_feedfile}"
+	json_add_string "run_info" "base: ${ban_basedir}, backup: ${ban_backupdir}, report: ${ban_reportdir}, feed/custom: ${ban_feedfile}/$(f_char ${custom})"
 	json_add_string "run_flags" "auto: $(f_char ${ban_autodetect}), proto (4/6): $(f_char ${ban_protov4})/$(f_char ${ban_protov6}), log (wan-inp/wan-fwd/lan-fwd): $(f_char ${ban_loginput})/$(f_char ${ban_logforwardwan})/$(f_char ${ban_logforwardlan}), dedup: $(f_char ${ban_deduplicate}), split: $(f_char ${split}), allowed only: $(f_char ${ban_allowlistonly})"
 	json_add_string "last_run" "${runtime:-"-"}"
 	json_add_string "system_info" "cores: ${ban_cores}, memory: ${ban_memory}, device: ${ban_sysver}"
@@ -975,8 +1006,6 @@ f_getstatus() {
 				done
 				json_select ".."
 			fi
-			value="$(printf "%s" "${value}" |
-				awk '{NR=1;max=118;if(length($0)>max+1)while($0){if(NR==1){print substr($0,1,max)}else{printf"%-24s%s\n","",substr($0,1,max)}{$0=substr($0,max+1);NR=NR+1}}else print}')"
 			printf "  + %-17s : %s\n" "${key}" "${value:-"-"}"
 		done
 	else
@@ -987,8 +1016,9 @@ f_getstatus() {
 # domain lookup
 #
 f_lookup() {
-	local cnt list domain lookup ip start_time end_time duration cnt_domain="0" cnt_ip="0" feed="${1}"
+	local cnt list domain lookup ip elementsv4 elementsv6 start_time end_time duration cnt_domain="0" cnt_ip="0" feed="${1}"
 
+	[ -z "${ban_dev}" ] && f_conf
 	start_time="$(date "+%s")"
 	if [ "${feed}" = "allowlist" ]; then
 		list="$("${ban_awkcmd}" '/^([[:alnum:]_-]{1,63}\.)+[[:alpha:]]+([[:space:]]|$)/{printf "%s ",tolower($1)}' "${ban_allowlist}" 2>/dev/null)"
@@ -1004,32 +1034,36 @@ f_lookup() {
 			else
 				if { [ "${feed}" = "allowlist" ] && ! "${ban_grepcmd}" -q "^${ip}" "${ban_allowlist}"; } ||
 					{ [ "${feed}" = "blocklist" ] && ! "${ban_grepcmd}" -q "^${ip}" "${ban_blocklist}"; }; then
-					cnt_ip="$((cnt_ip + 1))"
 					if [ "${ip##*:}" = "${ip}" ]; then
-						if ! "${ban_nftcmd}" add element inet banIP "${feed}v4" "{ ${ip} }" >/dev/null 2>&1; then
-							f_log "info" "failed to add IP '${ip}' (${domain}) to ${feed}v4 set"
-							continue
-						fi
+						elementsv4="${elementsv4} ${ip},"
 					else
-						if ! "${ban_nftcmd}" add element inet banIP "${feed}v6" "{ ${ip} }" >/dev/null 2>&1; then
-							f_log "info" "failed to add IP '${ip}' (${domain}) to ${feed}v6 set"
-							continue
-						fi
+						elementsv6="${elementsv6} ${ip},"
 					fi
 					if [ "${feed}" = "allowlist" ] && [ "${ban_autoallowlist}" = "1" ]; then
 						printf "%-42s%s\n" "${ip}" "# '${domain}' added on $(date "+%Y-%m-%d %H:%M:%S")" >>"${ban_allowlist}"
 					elif [ "${feed}" = "blocklist" ] && [ "${ban_autoblocklist}" = "1" ]; then
 						printf "%-42s%s\n" "${ip}" "# '${domain}' added on $(date "+%Y-%m-%d %H:%M:%S")" >>"${ban_blocklist}"
 					fi
+					cnt_ip="$((cnt_ip + 1))"
 				fi
 			fi
 		done
 		cnt_domain="$((cnt_domain + 1))"
 	done
+	if [ -n "${elementsv4}" ]; then
+		if ! "${ban_nftcmd}" add element inet banIP "${feed}v4" "{ ${elementsv4} }" >/dev/null 2>&1; then
+			f_log "info" "failed to add lookup file to '${feed}v4' Set"
+		fi
+	fi
+	if [ -n "${elementsv6}" ]; then
+		if ! "${ban_nftcmd}" add element inet banIP "${feed}v6" "{ ${elementsv6} }" >/dev/null 2>&1; then
+			f_log "info" "failed to add lookup file to '${feed}v6' Set"
+		fi
+	fi
 	end_time="$(date "+%s")"
 	duration="$(((end_time - start_time) / 60))m $(((end_time - start_time) % 60))s"
 
-	f_log "debug" "f_lookup  ::: name: ${feed}, cnt_domain: ${cnt_domain}, cnt_ip: ${cnt_ip}, duration: ${duration}"
+	f_log "debug" "feed: ${feed}, domains: ${cnt_domain}, IPs: ${cnt_ip}, duration: ${duration}"
 }
 
 # table statistics
@@ -1198,7 +1232,7 @@ f_report() {
 # set search
 #
 f_search() {
-	local table_sets ip proto run_search search="${1}"
+	local set table_sets ip proto run_search hold cnt search="${1}"
 
 	if [ -n "${search}" ]; then
 		ip="$(printf "%s" "${search}" | "${ban_awkcmd}" 'BEGIN{RS="(([0-9]{1,3}\\.){3}[0-9]{1,3})+"}{printf "%s",RT}')"
@@ -1215,14 +1249,15 @@ f_search() {
 		return
 	fi
 	printf "%s\n%s\n%s\n" ":::" "::: banIP Search" ":::"
-	printf "%s\n" "    Looking for IP '${ip}' on $(date "+%Y-%m-%d %H:%M:%S")"
-	printf "%s\n" "    ---"
+	printf "    %s\n" "Looking for IP '${ip}' on $(date "+%Y-%m-%d %H:%M:%S")"
+	printf "    %s\n" "---"
 	cnt="1"
 	run_search="/var/run/banIP.search"
 	for set in ${table_sets}; do
+		[ -f "${run_search}" ] && break
 		(
 			if "${ban_nftcmd}" get element inet banIP "${set}" "{ ${ip} }" >/dev/null 2>&1; then
-				printf "%s\n" "    IP found in Set '${set}'"
+				printf "    %s\n" "IP found in Set '${set}'"
 				: >"${run_search}"
 			fi
 		) &
@@ -1231,11 +1266,8 @@ f_search() {
 		cnt="$((cnt + 1))"
 	done
 	wait
-	if [ ! -f "${run_search}" ]; then
-		printf "%s\n" "    IP not found"
-	else
-		rm -f "${run_search}"
-	fi
+	[ ! -f "${run_search}" ] && printf "    %s\n" "IP not found"
+	rm -f "${run_search}"
 }
 
 # set survey
@@ -1243,16 +1275,15 @@ f_search() {
 f_survey() {
 	local set_elements set="${1}"
 
-	[ -n "${set}" ] && set_elements="$("${ban_nftcmd}" -j list set inet banIP "${set}" 2>/dev/null | jsonfilter -qe '@.nftables[*].set.elem[*]')"
-
-	if [ -z "${set}" ] || [ -z "${set_elements}" ]; then
+	if [ -z "${set}" ]; then
 		printf "%s\n%s\n%s\n" ":::" "::: no valid survey input" ":::"
 		return
 	fi
+	[ -n "${set}" ] && set_elements="$("${ban_nftcmd}" -j list set inet banIP "${set}" 2>/dev/null | jsonfilter -qe '@.nftables[*].set.elem[*]')"
 	printf "%s\n%s\n%s\n" ":::" "::: banIP Survey" ":::"
-	printf "%s\n" "    List the elements of Set '${set}' on $(date "+%Y-%m-%d %H:%M:%S")"
-	printf "%s\n" "    ---"
-	printf "%s\n" "${set_elements}"
+	printf "    %s\n" "List the elements of Set '${set}' on $(date "+%Y-%m-%d %H:%M:%S")"
+	printf "    %s\n" "---"
+	[ -n "${set_elements}" ] && printf "%s\n" "${set_elements}" || printf "    %s\n" "empty set"
 }
 
 # send status mails
@@ -1282,17 +1313,21 @@ f_mail() {
 	f_log "debug" "f_mail    ::: notification: ${ban_mailnotification}, template: ${ban_mailtemplate}, profile: ${ban_mailprofile}, receiver: ${ban_mailreceiver}, rc: ${?}"
 }
 
-# check banIP availability and initial sourcing
+# initial sourcing
+#
+if [ -r "/lib/functions.sh" ] && [ -r "/lib/functions/network.sh" ] && [ -r "/usr/share/libubox/jshn.sh" ]; then
+	. "/lib/functions.sh"
+	. "/lib/functions/network.sh"
+	. "/usr/share/libubox/jshn.sh"
+else
+	rm -rf "${ban_lock}"
+	exit 1
+fi
+
+# check banIP availability
 #
 f_system
 if [ "${ban_action}" != "stop" ]; then
-	if [ -r "/lib/functions.sh" ] && [ -r "/lib/functions/network.sh" ] && [ -r "/usr/share/libubox/jshn.sh" ]; then
-		. "/lib/functions.sh"
-		. "/lib/functions/network.sh"
-		. "/usr/share/libubox/jshn.sh"
-	else
-		f_log "err" "system libraries not found"
-	fi
 	[ ! -d "/etc/banip" ] && f_log "err" "banIP config directory not found, please re-install the package"
 	[ ! -r "/etc/banip/banip.feeds" ] && f_log "err" "banIP feed file not found, please re-install the package"
 	[ ! -r "/etc/config/banip" ] && f_log "err" "banIP config not found, please re-install the package"
