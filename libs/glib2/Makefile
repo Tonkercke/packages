@@ -26,7 +26,7 @@ PKG_FORTIFY_SOURCE:=0
 PKG_INSTALL:=1
 
 HOST_BUILD_DIR:=$(BUILD_DIR_HOST)/glib-$(PKG_VERSION)
-HOST_BUILD_DEPENDS:=pcre2/host libffi/host
+HOST_BUILD_DEPENDS:=libffi/host
 
 include $(INCLUDE_DIR)/host-build.mk
 include $(INCLUDE_DIR)/package.mk
