@@ -1,6 +1,6 @@
 #
 # Copyright (C) 2018 Sebastian Kemper <sebastian_ml@gmx.net>
-# Copyright (C) 2021-2022 Michal Hrusecky <michal@hrusecky.net>
+# Copyright (C) 2021 Michal Hrusecky <michal@hrusecky.net>
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -9,20 +9,20 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=mariadb
-PKG_VERSION:=10.6.10
-PKG_RELEASE:=$(AUTORELEASE)
+PKG_VERSION:=10.9.3
+PKG_RELEASE:=4
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL := https://archive.mariadb.org/$(PKG_NAME)-$(PKG_VERSION)/source
 
-PKG_HASH:=6ad9fa86f0c85c8eeafad2643549d5ff5dd2872002964e754752de91863aa3b7
+PKG_HASH:=9a1e229972fcccc8270e633f68d3fb824da151dcf4f53da1df8d947aca876bee
 PKG_MAINTAINER:=Michal Hrusecky <Michal@Hrusecky.net>
 PKG_LICENSE:=GPL-2.0-only
 PKG_LICENSE_FILES:=COPYING THIRDPARTY
 
 PKG_CPE_ID:=cpe:/a:mariadb:mariadb
 
-PKG_USE_MIPS16:=0
+PKG_BUILD_FLAGS:=no-mips16
 
 HOST_BUILD_DEPENDS:=libxml2/host
 # Without libevent2 tests/async_queries sporadically fails on the bots
@@ -169,6 +169,7 @@ include $(INCLUDE_DIR)/cmake.mk
 MARIADB_COMMON_DEPENDS := \
 	$(ICONV_DEPENDS) \
 	+libatomic \
+	+libfmt \
 	+libopenssl \
 	+libstdcpp \
 	+zlib
@@ -176,6 +177,10 @@ MARIADB_COMMON_DEPENDS := \
 # Pass CPPFLAGS in the CFLAGS as otherwise the build system will
 # ignore them.
 TARGET_CFLAGS+=$(TARGET_CPPFLAGS)
+
+ifneq ($(CONFIG_USE_MUSL),)
+  TARGET_CFLAGS += -D_LARGEFILE64_SOURCE
+endif
 
 define Package/mariadb/disable/engine
 	echo > $(1)/storage/$(2)/CMakeLists.txt
@@ -366,6 +371,7 @@ CMAKE_OPTIONS += \
 	-DWITH_INNODB_SNAPPY=OFF \
 	-DWITH_JEMALLOC=OFF \
 	-DWITH_LIBARCHIVE=OFF \
+	-DWITH_LIBFMT=system \
 	-DWITH_LIBWRAP=OFF \
 	-DWITH_MARIABACKUP=ON \
 	-DWITH_NUMA=OFF \

@@ -21,6 +21,7 @@ PKG_CPE_ID:=cpe:/a:libreswan:libreswan
 
 PKG_BUILD_PARALLEL:=1
 PKG_INSTALL:=1
+PKG_BUILD_FLAGS:=lto
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -65,7 +66,6 @@ define Package/libreswan/conffiles
 /etc/ipsec.secrets
 endef
 TARGET_LDFLAGS += -Wl,--gc-sections,--as-needed
-TARGET_CFLAGS += -flto
 
 MAKE_FLAGS+= \
     WERROR_CFLAGS=" " \
@@ -84,9 +84,11 @@ MAKE_FLAGS+= \
     PREFIX="/usr" \
     FINALRUNDIR="/var/run/pluto" \
     FINALNSSDIR="/etc/ipsec.d" \
+    DEFAULT_DNSSEC_ROOTKEY_FILE=/etc/unbound/root.key \
     MODPROBEARGS="-q" \
     OSDEP=linux \
     BUILDENV=linux \
+    LINUX_VARIANT="openwrt" \
     ARCH="$(LINUX_KARCH)" \
 
 define Build/Prepare

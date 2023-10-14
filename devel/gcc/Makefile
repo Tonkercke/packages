@@ -23,7 +23,7 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=gcc
 GCC_VERSION:=$(call qstrip,$(CONFIG_GCC_VERSION))
 PKG_VERSION:=$(firstword $(subst +, ,$(GCC_VERSION)))
-PKG_RELEASE:=$(AUTORELEASE)
+PKG_RELEASE:=5
 GCC_DIR:=$(PKG_NAME)-$(PKG_VERSION)
 
 PKG_SOURCE_URL:=@GNU/gcc/gcc-$(PKG_VERSION)
@@ -42,8 +42,12 @@ ifeq ($(PKG_VERSION),10.3.0)
 	PKG_HASH:=64f404c1a650f27fc33da242e1f2df54952e3963a49e06e73f6940f3223ac344
 endif
 
-ifeq ($(PKG_VERSION),11.2.0)
-	PKG_HASH:=d08edc536b54c372a1010ff6619dd274c0f1603aa49212ba20f7aa2cda36fa8b
+ifeq ($(PKG_VERSION),11.3.0)
+	PKG_HASH:=b47cf2818691f5b1e21df2bb38c795fac2cfbd640ede2d0a5e1c89e338a3ac39
+endif
+
+ifeq ($(PKG_VERSION),12.3.0)
+	PKG_HASH:=949a5d4f99e786421a93b532b22ffab5578de7321369975b91aec97adfda8c3b
 endif
 
 PATCH_DIR=./patches/$(GCC_VERSION)
@@ -230,14 +234,18 @@ define Package/gcc/install
 	chmod +x $(1)/usr/bin/gcc_env.sh
 endef
 
+ifeq ($(CONFIG_INCLUDE_STATIC_LINK_SPEC),y)
 define Package/gcc/postinst
-	#!/bin/sh
-	$(INSTALL_STATIC_SPEC)
+#!/bin/sh
+
+$(INSTALL_STATIC_SPEC)
 endef
 
 define Package/gcc/postrm
-	#!/bin/sh
-	$(REMOVE_STATIC_SPEC)
+#!/bin/sh
+
+$(REMOVE_STATIC_SPEC)
 endef
+endif
 
 $(eval $(call BuildPackage,gcc))

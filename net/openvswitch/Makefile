@@ -17,10 +17,10 @@ include ./openvswitch.mk
 #
 PKG_NAME:=openvswitch
 PKG_VERSION:=$(ovs_version)
-PKG_RELEASE:=$(AUTORELEASE)
+PKG_RELEASE:=3
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://www.openvswitch.org/releases/
-PKG_HASH:=015e77a520c380b080b3fb5a4c73e34ef40c08aa05d7049c73719db75b6adc79
+PKG_HASH:=e03bfab7ca82d81a7d3a36de4f390a3b5210e3f39657671f922877cd4ea6dc73
 
 PKG_LICENSE:=Apache-2.0
 PKG_LICENSE_FILES:=LICENSE
@@ -28,7 +28,7 @@ PKG_CPE_ID:=cpe:/a:openvswitch:openvswitch
 
 PKG_BUILD_DIR:=$(ovs_builddir)
 PKG_BUILD_DEPENDS+=python3/host
-PKG_USE_MIPS16:=0
+PKG_BUILD_FLAGS:=no-mips16 lto
 PKG_BUILD_PARALLEL:=1
 PKG_FIXUP:=autoreconf
 PKG_INSTALL:=1
@@ -268,7 +268,7 @@ ifneq ($(ovs_intree_kmod_enabled),)
   endif
 endif
 
-TARGET_CFLAGS += -flto -std=gnu99
+TARGET_CFLAGS += -std=gnu99
 MAKE_VARS += PYTHONPATH="$(HOST_PYTHON3PATH)"
 
 export OVS_KERNEL_MAKE_FLAGS=$(KERNEL_MAKE_FLAGS)

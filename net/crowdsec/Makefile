@@ -19,7 +19,7 @@ PKG_MAINTAINER:=Gerald Kerma <gandalf@gk2.net>
 
 PKG_BUILD_DEPENDS:=golang/host
 PKG_BUILD_PARALLEL:=1
-PKG_USE_MIPS16:=0
+PKG_BUILD_FLAGS:=no-mips16
 
 CWD_SYSTEM:=openwrt
 
@@ -81,6 +81,10 @@ $(call Package/crowdsec/Default/description)
 
   This package provides the source files for the program.
 endef
+
+ifneq ($(CONFIG_USE_MUSL),)
+  TARGET_CFLAGS += -D_LARGEFILE64_SOURCE
+endif
 
 define Package/crowdsec/install
 	$(call GoPackage/Package/Install/Bin,$(1))

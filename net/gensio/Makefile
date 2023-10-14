@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=gensio
-PKG_VERSION:=2.3.5
+PKG_VERSION:=2.4.2
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=@SF/ser2net
-PKG_HASH:=e9943b392ba85bdc13063059125794554f07e569d8ca0afd38f773a390f5f234
+PKG_HASH:=2593c1e7beaec3a0a4acbf60f94bbf64b99883d86f172a3b584eba5f67441b4b
 
 PKG_LICENSE:=GPL-2.0-or-later
 PKG_LICENSE_FILES:=COPYING
@@ -33,7 +33,7 @@ PKG_CONFIG_DEPENDS:= \
 	CONFIG_GENSIO_TCL \
 	CONFIG_GENSIO_SSHD
 
-PKG_BUILD_DEPENDS:=PACKAGE_python3-gensio:swig
+PKG_BUILD_DEPENDS:=PACKAGE_python3-gensio:swig/host
 
 include $(INCLUDE_DIR)/package.mk
 include ../../lang/python/python3-package.mk
@@ -45,6 +45,7 @@ CONFIGURE_ARGS += \
 	--$(if $(CONFIG_GENSIO_PTHREADS),with,without)-pthreads \
 	--$(if $(CONFIG_GENSIO_GLIB),with,without)-glib \
 	--$(if $(CONFIG_GENSIO_TCL),with,without)-tcl \
+	--without-go \
 	--without-openipmi \
 	--with-cplusplus \
 	--disable-doc
@@ -95,7 +96,7 @@ $(call Package/gensio/Default)
   CATEGORY:=Libraries
   ABI_VERSION:=0
   MENU:=1
-  DEPENDS:=+GENSIO_SSL:libopenssl +GENSIO_WRAP:libwrap +GENSIO_SCTP:libsctp +GENSIO_PTHREADS:libpthread +GENSIO_AVAHI:libavahi-client +GENSIO_TCL:tcl +GENSIO_GLIB:glib2 +GENSIO_SSHD:libpam
+  DEPENDS:=+GENSIO_SSL:libopenssl +GENSIO_WRAP:libwrap +(IPV6&&GENSIO_SCTP):libsctp +GENSIO_PTHREADS:libpthread +GENSIO_AVAHI:libavahi-client +GENSIO_TCL:tcl +GENSIO_GLIB:glib2 +GENSIO_SSHD:libpam
 endef
 
 define Package/libgensio/description
@@ -129,10 +130,11 @@ endef
 
 define Package/python3-gensio
 $(call Package/gensio/Default)
-  TITLE+= (Python3-bindings)
+  TITLE+= (Python bindings)
   SECTION:=lang
   CATEGORY:=Languages
-  DEPENDS:=+PACKAGE_python3-gensio:python3-light +libgensio
+  SUBMENU:=Python
+  DEPENDS:=+PACKAGE_python3-gensio:python3-light +libgensiocpp
 endef
 
 define Package/python3-gensio/description

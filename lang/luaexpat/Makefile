@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luaexpat
-PKG_VERSION:=1.3.0
+PKG_VERSION:=1.5.1
 PKG_RELEASE:=1
 
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:=http://matthewwild.co.uk/projects/luaexpat
-PKG_HASH:=d060397960d87b2c89cf490f330508b7def1a0677bdc120531c571609fc57dc3
+PKG_SOURCE:=$(PKG_VERSION).tar.gz
+PKG_SOURCE_URL:=https://github.com/lunarmodules/luaexpat/archive/refs/tags
+PKG_HASH:=7d455f154de59eb0b073c3620bc8b873f7f697b3f21a112e6ff8dc9fca6d0826
 
 PKG_CPE_ID:=cpe:/a:matthewwild:luaexpat
 

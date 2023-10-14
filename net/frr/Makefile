@@ -7,16 +7,15 @@
 
 include $(TOPDIR)/rules.mk
 PKG_NAME:=frr
-PKG_VERSION:=8.2.0
+PKG_VERSION:=8.5.1
 PKG_RELEASE:=1
-PKG_SOURCE_DATE:=2022-03-05
+PKG_SOURCE_DATE:=2023-05-12
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_SOURCE_DATE).tar.gz
-PKG_SOURCE_VERSION:=47a5de9c038c17038cef61786fd1216d33ee0f66
+PKG_SOURCE_VERSION:=05469ab2b553302c2a7032f4c89e4510dc3fa6d9
 PKG_SOURCE_URL:=https://codeload.github.com/FRRouting/frr/tar.gz/$(PKG_SOURCE_VERSION)?
 
-
-PKG_HASH:=6007ae2fdb2e068696f92dd000f247ef2a27d846863b0b1552752e41ed5f4017
+PKG_HASH:=caf3fcf1998ecd9a08e67373921a2d4bf49dbfc707008d20a1d38fd1606ef298
 PKG_MAINTAINER:=Lucian Cristian <lucian.cristian@gmail.com>
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_SOURCE_VERSION)
@@ -58,9 +57,10 @@ PKG_CONFIG_DEPENDS:= \
 PKG_FIXUP:=autoreconf
 PKG_BUILD_PARALLEL:=1
 PKG_INSTALL:=1
+PKG_BUILD_FLAGS:=lto
 
 PKG_BUILD_DEPENDS:=frr/host
-HOST_BUILD_DEPENDS:=python3/host elfutils/host
+HOST_BUILD_DEPENDS:=python3/host
 
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/host-build.mk
@@ -166,7 +166,6 @@ define Package/frr-libfrr/conffiles
 endef
 
 TARGET_LDFLAGS += -Wl,--gc-sections,--as-needed -latomic
-TARGET_CFLAGS += -flto
 
 define Host/Configure
 	$(Host/Configure/Default)
