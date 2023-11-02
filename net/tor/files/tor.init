@@ -32,7 +32,7 @@ generate_conf() {
 }
 
 reload_service() {
-	procd_send_signal tor
+	procd_send_signal /usr/sbin/tor
 }
 
 start_service() {
