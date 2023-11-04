@@ -20,7 +20,6 @@ PKG_HASH:=4f0bfd486efc6ea7229f7fbc54340ff8b2094a0d73e9f617e0a39f878999a247
 
 PKG_BUILD_PARALLEL:=1
 PKG_INSTALL:=1
-PKG_BUILD_FLAGS:=gc-sections
 
 PKG_MAINTAINER:=Rick Farina <zerochaos@gentoo.org>
 
@@ -83,7 +82,6 @@ CONFIGURE_ARGS += \
 	--with-libpcap-include=$(STAGING_DIR)/usr/include \
 	--with-libpcap-lib=$(STAGING_DIR)/usr/lib \
 	--without-opt \
-	--with-libbsd=no \
 	\
 	PYTHON=$(PYTHON) \
 	\
@@ -92,11 +90,14 @@ CONFIGURE_ARGS += \
 	$(if $(CONFIG_AIRCRACK_NG_HWLOC),--enable-hwloc,--disable-hwloc) \
 	$(if $(CONFIG_AIRCRACK_NG_SQLITE3),--with-sqlite3=$(STAGING_DIR)/usr,--without-sqlite3)
 
-TARGET_CFLAGS += -Wall -Wextra -fcommon
+TARGET_CFLAGS += -Wall -Wextra -ffunction-sections -fdata-sections -fcommon
 
 ifeq ($(CONFIG_AIRCRACK_NG_OPTIMIZE_SPEED),y)
 	TARGET_CFLAGS := $(filter-out -O%,$(TARGET_CFLAGS)) -O3
 endif
+
+TARGET_LDFLAGS+= \
+	-Wl,--gc-sections
 
 define Package/aircrack-ng/install
 	$(INSTALL_DIR) $(1)/usr/bin
