@@ -11,7 +11,7 @@ include $(TOPDIR)/rules.mk
 include ../python3-version.mk
 
 PKG_NAME:=python3
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 PKG_VERSION:=$(PYTHON3_VERSION).$(PYTHON3_VERSION_MICRO)
 
 PKG_SOURCE:=Python-$(PKG_VERSION).tar.xz
@@ -42,7 +42,7 @@ PKG_CONFIG_DEPENDS:= \
 	CONFIG_PACKAGE_python3-pkg-resources \
 	CONFIG_PACKAGE_python3-setuptools CONFIG_PACKAGE_python3-pip
 
-PKG_BUILD_DEPENDS:=bluez python3/host
+PKG_BUILD_DEPENDS:=bluez python3/host python-build/host python-installer/host python-wheel/host
 HOST_BUILD_DEPENDS:=bzip2/host libffi/host
 
 include $(INCLUDE_DIR)/host-build.mk
@@ -183,11 +183,11 @@ endif
 
 ifeq ($(PYTHON3_SETUPTOOLS_BUILD),1)
 define Build/Compile/python3-setuptools
+	$(HOST_PYTHON3_PIP_VARS) \
 	$(HOST_PYTHON3_PIP) \
-		--disable-pip-version-check \
-		--cache-dir "$(DL_DIR)/pip-cache" \
 		install \
 		--ignore-installed \
+		--progress-bar off \
 		--root=$(PKG_BUILD_DIR)/install-setuptools \
 		--prefix=/usr \
 		$(PKG_BUILD_DIR)/Lib/ensurepip/_bundled/setuptools-$(PYTHON3_SETUPTOOLS_VERSION)-py3-none-any.whl
@@ -201,11 +201,11 @@ endif # CONFIG_PACKAGE_python3-setuptools
 
 ifdef CONFIG_PACKAGE_python3-pip
 define Build/Compile/python3-pip
+	$(HOST_PYTHON3_PIP_VARS) \
 	$(HOST_PYTHON3_PIP) \
-		--disable-pip-version-check \
-		--cache-dir "$(DL_DIR)/pip-cache" \
 		install \
 		--ignore-installed \
+		--progress-bar off \
 		--root=$(PKG_BUILD_DIR)/install-pip \
 		--prefix=/usr \
 		$(PKG_BUILD_DIR)/Lib/ensurepip/_bundled/pip-$(PYTHON3_PIP_VERSION)-py3-none-any.whl
@@ -390,12 +390,6 @@ endef
 
 $(eval $(call HostBuild))
 
-$(foreach package, $(PYTHON3_PACKAGES),  \
-	$(eval $(call Py3Package,$(package))) \
-	$(eval $(call BuildPackage,$(package))) \
-	$(eval $(call BuildPackage,$(package)-src)) \
-)
-
 $(eval $(call BuildPackage,libpython3))
 
 $(eval $(call Py3Package,python3-base))
@@ -408,3 +402,9 @@ $(eval $(call BuildPackage,python3))
 
 $(eval $(call BuildPackage,python3-base-src))
 $(eval $(call BuildPackage,python3-light-src))
+
+$(foreach package, $(PYTHON3_PACKAGES),  \
+	$(eval $(call Py3Package,$(package))) \
+	$(eval $(call BuildPackage,$(package))) \
+	$(eval $(call BuildPackage,$(package)-src)) \
+)
