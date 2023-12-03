@@ -1,18 +1,17 @@
 #
-# Copyright (c) 2018-2020 Nick Peng (pymumu@gmail.com)
+# Copyright (c) 2018-2022 Nick Peng (pymumu@gmail.com)
 # This is free software, licensed under the GNU General Public License v3.
-#
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=smartdns
-PKG_VERSION:=1.2022.38.1
+PKG_VERSION:=Release43
 PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://www.github.com/pymumu/smartdns.git
-PKG_SOURCE_VERSION:=9bc857f628299573c7eca0833229d9812b1c1de4
-PKG_MIRROR_HASH:=a202b765e6ce8355335c80214819add3ed72a82426b033d7d5adf1448b415063
+PKG_MIRROR_HASH:=2a5e7869603ecb7b0d94e153d938e798f0b8f260cc6062cc095a39116386d8b3
+PKG_SOURCE_VERSION:=d792e5f7f71ce9320b341fe02135077e00fa3e21
 
 PKG_MAINTAINER:=Nick Peng <pymumu@gmail.com>
 PKG_LICENSE:=GPL-3.0-or-later
@@ -36,7 +35,7 @@ endef
 define Package/smartdns/description
 SmartDNS is a local DNS server which accepts DNS query requests from local network clients,
 gets DNS query results from multiple upstream DNS servers concurrently, and returns the fastest IP to clients.
-Unlike dnsmasq's all-servers, smartdns returns the fastest IP. 
+Unlike dnsmasq's all-servers, smartdns returns the fastest IP, and encrypt DNS queries with DoT or DoH. 
 endef
 
 define Package/smartdns/conffiles
@@ -47,7 +46,8 @@ define Package/smartdns/conffiles
 endef
 
 define Package/smartdns/install
-	$(INSTALL_DIR) $(1)/usr/sbin $(1)/etc/config $(1)/etc/init.d $(1)/etc/smartdns
+	$(INSTALL_DIR) $(1)/usr/sbin $(1)/etc/config $(1)/etc/init.d 
+	$(INSTALL_DIR) $(1)/etc/smartdns $(1)/etc/smartdns/domain-set $(1)/etc/smartdns/conf.d/
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/smartdns $(1)/usr/sbin/smartdns
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/package/openwrt/files/etc/init.d/smartdns $(1)/etc/init.d/smartdns
 	$(INSTALL_CONF) $(PKG_BUILD_DIR)/package/openwrt/address.conf $(1)/etc/smartdns/address.conf
