@@ -11,8 +11,8 @@ PKG_VERSION:=1.37.0
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:=https://github.com/aria2/aria2/archive/refs/tags/release-$(PKG_VERSION)/
-PKG_HASH:=0a420ad7085eb616cb6e2bdf0a7206d68ff3d37fb5a956dc44242eb2f79b66b
+PKG_SOURCE_URL:=https://github.com/aria2/aria2/archive/refs/tags/release-$(PKG_VERSION).tar.gz
+PKG_HASH:=9104878396cc30441976afdd3af9331ec51306fabf92fb82724c3b8fa7d72932
 PKG_INSTALL:=1
 PKG_BUILD_PARALLEL:=1
 
